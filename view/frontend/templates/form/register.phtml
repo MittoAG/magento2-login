@@ -1,0 +1,125 @@
+<?php
+/** @var \Mitto\Login\Block\Login $block */
+    ?>
+    <div id="use_phone_to_login" style="display: none">
+        <div class="field phone">
+            <input type="checkbox" name="use_phone" id="use_phone" value="" title="Use Phone" class="input-text">
+            <label for="use_phone" class="label"><span><?php echo __('Use phone number to register'); ?></span></label>
+        </div>
+        <div class="field required phone" style="display: none">
+            <label for="phone" class="label"><span>Phone</span></label>
+            <div class="control">
+                <input type="tel" name="phone" id="phone" title="Phone" class="input-text"
+                       data-validate="{required:true}" data-mage-init='{"intlTelInput": {"separateDialCode":true}}'>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="mitto-login-modal" style="display: none"
+         data-mage-init='{"Magento_Ui/js/modal/modal":{"modalClass":"mitto-login-modal-wrapper","title":"<?php echo __('Register with phone'); ?>","buttons":[]}}'>
+        <h3><?php echo __('Please enter the code sent to your phone'); ?></h3>
+        <input type="tel" name="code" id="mitto-login-code"/>
+        <div class="actions-toolbar">
+            <button type="button" id="mitto-login-check-button" class="action primary">
+                <?php echo __('Register') ?>
+            </button>
+            <button type="button" id="mitto-login-resend-button" class="action secondary" disabled>
+                <span><?php echo __('Resend Code'); ?></span>
+                <span class="timer"></span>
+            </button>
+        </div>
+    </div>
+    <script>
+        require(['jquery', 'underscore', 'mage/dataPost'], function ($, _, dataPost) {
+            $('#use_phone_to_login .field').insertBefore($('#email_address').parents('.field'));
+            var $usePhoneCheckbox = $('#use_phone'),
+                $phoneInput = $('#phone'),
+                $loginModal = $('#mitto-login-modal'),
+                $registerForm = $('form.form-create-account'),
+                $resendButton = $('#mitto-login-resend-button'),
+                $codeInput = $('#mitto-login-code'),
+                $resendTimer = $resendButton.find('.timer');
+
+            var intervalId = null;
+            var time = 0;
+
+            function startTimer(seconds) {
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+                time = seconds;
+                $resendTimer.html(time--);
+                $resendTimer.show();
+                intervalId = setInterval(function () {
+                    $resendTimer.html(time--);
+                    if (time === 0) {
+                        clearInterval(intervalId);
+                        $resendTimer.hide();
+                        $resendButton.attr('disabled', false);
+                    }
+                }, 1000);
+            }
+
+            function sendCode() {
+                $.ajax({
+                    url: '<?php echo $block->getUrl('mitto_login/account/send'); ?>',
+                    data: {
+                        'form_key': window.FORM_KEY,
+                        'phone': $phoneInput.intlTelInput('getNumber')
+                    },
+                    method: 'POST',
+                    showLoader: true,
+                    success: function (data) {
+                        if (data.success) {
+                            $loginModal.modal('openModal');
+                            $resendButton.attr('disabled', true);
+                            startTimer(60);
+                        }
+                    }
+                });
+            }
+
+            $usePhoneCheckbox.change(function () {
+                if ($usePhoneCheckbox.prop('checked')) {
+                    $(".form-create-account .create.account .field.phone").show();
+                    $(".form-create-account .create.account .field:not('.phone')").hide();
+                } else {
+                    $(".form-create-account .create.account .field.phone.required").hide();
+                    $(".form-create-account .create.account .field:not('.phone')").show();
+                }
+            });
+            $('#mitto-login-send-button, #mitto-login-resend-button').click(sendCode);
+            $registerForm.submit(function (e) {
+                if ($usePhoneCheckbox.prop('checked') && $registerForm.validation('isValid')) {
+                    e.preventDefault();
+                    sendCode();
+                }
+            });
+            $('#mitto-login-check-button').click(function () {
+                $.ajax({
+                    url: '<?php echo $block->getUrl('mitto_login/otp/check'); ?>',
+                    data: {
+                        'form_key': window.FORM_KEY,
+                        'phone': $phoneInput.intlTelInput('getNumber'),
+                        'code': $codeInput.val(),
+                    },
+                    method: 'POST',
+                    showLoader: true,
+                    success: function (data) {
+                        if (data.status) {
+                            var formData = $registerForm.serializeArray();
+                            dataPost().postData({
+                                action: '<?php echo $block->getUrl('mitto_login/account/createPost'); ?>',
+                                data: _.extend(
+                                    _.object(_.pluck(formData, 'name'), _.pluck(formData, 'value')),
+                                    {
+                                        'phone': $phoneInput.intlTelInput('getNumber'),
+                                        'verification_token': data.verification_token,
+                                    }
+                                )
+                            });
+                        }
+                    },
+                })
+            });
+        });
+    </script>

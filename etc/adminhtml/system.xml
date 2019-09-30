@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="mitto_login" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1">
+            <label>Login</label>
+            <tab>mitto</tab>
+            <resource>Mitto_Login::config</resource>
+            <group id="general" sortOrder="0" showInDefault="1" showInWebsite="1">
+                <label>General</label>
+                <field id="enabled"
+                       translate="label"
+                       type="select"
+                       sortOrder="10"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+                    <label>Enable Module</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="code_length"
+                       translate="label comment"
+                       type="text"
+                       sortOrder="20"
+                       showInDefault="1"
+                       showInWebsite="1">
+                    <label>OTP code length</label>
+                    <validate>required-entry validate-number validate-number-range number-range-4-20</validate>
+                </field>
+                <field id="email_suffix"
+                       translate="label comment"
+                       type="text"
+                       sortOrder="20"
+                       showInDefault="1"
+                       showInWebsite="1">
+                    <label>Email suffix</label>
+                    <comment>
+                        Magento considers email mandatory field so users registering with phone numbers will get auto-generated email using this suffix.
+                        Suffix examples: @example.com, +customer@example.com
+                    </comment>
+                    <validate>required-entry</validate>
+                </field>
+            </group>
+            <group id="templates" sortOrder="0" showInDefault="1" showInWebsite="1">
+                <label>Templates</label>
+                <field id="customer_login_code"
+                       translate="label"
+                       type="textarea"
+                       sortOrder="10"
+                       showInDefault="1"
+                       showInWebsite="1">
+                    <label>Customer login code</label>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

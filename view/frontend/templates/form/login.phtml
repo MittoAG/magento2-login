@@ -1,0 +1,126 @@
+<?php
+/** @var \Mitto\Login\Block\Login $block */
+?>
+<a href="#" id="show-mitto-login"><?php echo __('Login with phone'); ?></a>
+<div class="modal" id="mitto-login-modal" style="display: none">
+    <div class="send-form">
+        <p><?php echo __('In order to confirm your identity a code will be sent to your phone.'); ?></p>
+        <input type="tel" name="phone" id="mitto-login-phone"
+               data-mage-init='{"intlTelInput": {"separateDialCode":true}}'/>
+        <div class="error-container"></div>
+        <button type="button" id="mitto-login-send-button">
+            <?php echo __('Next') ?>
+        </button>
+    </div>
+    <div class="check-form" style="display: none">
+        <h3><?php echo __('Please enter the code sent to your phone'); ?></h3>
+        <input type="number" name="code" id="mitto-login-code"/>
+        <div class="error-container"></div>
+        <div class="actions-toolbar">
+            <button type="button" id="mitto-login-check-button" class="action primary">
+                <?php echo __('Login') ?>
+            </button>
+            <button type="button" id="mitto-login-resend-button" class="action secondary" disabled>
+                <span><?php echo __('Resend Code'); ?></span>
+                <span class="timer"></span>
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+    require(['jquery', 'mage/dataPost', 'Magento_Ui/js/modal/modal'], function ($, dataPost) {
+        var $loginModal = $('#mitto-login-modal'),
+            $phoneInput = $('#mitto-login-phone'),
+            $resendButton = $('#mitto-login-resend-button'),
+            $resendTimer = $resendButton.find('.timer'),
+            $codeInput = $('#mitto-login-code'),
+            errorMap = ["Invalid number", "Invalid country code", "Too short", "Too long", "Invalid number"];
+
+        $loginModal.modal({
+            modalClass: 'mitto-login-modal-wrapper',
+            title: '<?php echo __('Login with phone'); ?>',
+            buttons: []
+        });
+        $('#show-mitto-login').click(function () {
+            $loginModal.modal('openModal');
+        });
+
+        var intervalId = null;
+        var time = 0;
+
+        function startTimer(seconds) {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+            time = seconds;
+            $resendTimer.html(time--);
+            $resendTimer.show();
+            intervalId = setInterval(function () {
+                $resendTimer.html(time--);
+                if (time === 0) {
+                    clearInterval(intervalId);
+                    $resendTimer.hide();
+                    $resendButton.attr('disabled', false);
+                }
+            }, 1000);
+        }
+
+        $('#mitto-login-send-button, #mitto-login-resend-button').click(function () {
+            if (!$phoneInput.intlTelInput('isValidNumber')) {
+                $loginModal.find('.send-form .error-container').html(
+                    errorMap[$phoneInput.intlTelInput('getValidationError')]
+                );
+                return;
+            }
+            $.ajax({
+                url: '<?php echo $block->getUrl('mitto_login/otp/send'); ?>',
+                data: {
+                    'form_key': window.FORM_KEY,
+                    'phone': $phoneInput.intlTelInput('getNumber')
+                },
+                method: 'POST',
+                showLoader: true,
+                success: function (data) {
+                    if (data.success) {
+                        $resendButton.attr('disabled', true);
+                        $loginModal.find('.send-form').hide();
+                        $loginModal.find('.check-form').show();
+                        $codeInput.val('');
+                        $loginModal.find('.check-form .error-container').empty();
+                        startTimer(60);
+                    }
+                },
+                error: function (xhr) {
+                    $loginModal.find('.check-form .error-container').html(xhr.responseJSON.error);
+                }
+            })
+        });
+        $('#mitto-login-check-button').click(function () {
+            $.ajax({
+                url: '<?php echo $block->getUrl('mitto_login/otp/check'); ?>',
+                data: {
+                    'form_key': window.FORM_KEY,
+                    'phone': $phoneInput.intlTelInput('getNumber'),
+                    'code': $codeInput.val(),
+                },
+                method: 'POST',
+                dataType: 'json',
+                showLoader: true,
+                success: function (data) {
+                    if (data.status) {
+                        dataPost().postData({
+                            action: '<?php echo $block->getUrl('mitto_login/otp/submit'); ?>',
+                            data: {
+                                'phone': $phoneInput.intlTelInput('getNumber'),
+                                'verification_token': data.verification_token,
+                            }
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    $loginModal.find('.check-form .error-container').html(xhr.responseJSON.error);
+                }
+            })
+        });
+    });
+</script>

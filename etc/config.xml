@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <mitto_login>
+            <general>
+                <enabled>0</enabled>
+                <code_length>6</code_length>
+                <email_suffix>@example.com</email_suffix>
+            </general>
+            <templates>
+                <customer_login_code>Your login code for {{var store.getName()}} is {{var code}}</customer_login_code>
+            </templates>
+        </mitto_login>
+    </default>
+</config>
