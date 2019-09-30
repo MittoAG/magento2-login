@@ -6,7 +6,7 @@
         "mitto-ag/magento2-core": ">=0.0.1"
     },
     "type": "magento2-module",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "autoload": {
         "files": [
             "registration.php"
